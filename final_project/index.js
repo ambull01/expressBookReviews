@@ -3,30 +3,34 @@ const jwt = require('jsonwebtoken');
 const session = require('express-session')
 const customer_routes = require('./router/auth_users.js').authenticated;
 const genl_routes = require('./router/general.js').general;
+
 const app = express();
+
 app.use(express.json());
 
-app.use("/customer",session({secret:"fingerprint_customer",resave: true, saveUninitialized: true}));
+app.use("/customer", session({ secret: "fingerprint_customer", resave: true, saveUninitialized: true }));
+app.use("/customer/auth/*", function auth(req, res, next) {
 
-app.use("/customer/auth/*", function auth(req,res,next){
-//Write the authenication mechanism here
-
-  // Check for access token in session
-  if(req.session.accessToken) {
-
-    // Pass request to next middleware
-    next();
-
+  if (req.session && req.session.accessToken) {
+    try {
+    
+      const decodedToken = jwt.verify(req.session.accessToken, 'FirasABIDLI');
+      
+      next();
+    } catch (error) {
+     
+      res.status(403).json({ error: 'Access denied.' });
+    }
   } else {
-
-    // Return unauthorized if no token
-    res.status(401).send('Unauthorized');
-
+  
+    res.status(401).json({ error: 'Unauthorized.' });
   }
-
 });
 
-const PORT =5000;
+
+const PORT = 5000;
+
 app.use("/customer", customer_routes);
 app.use("/", genl_routes);
-app.listen(PORT,()=>console.log("Server is running"));
+
+app.listen(PORT, () => console.log("Server is running"));
